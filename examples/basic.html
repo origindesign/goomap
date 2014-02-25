@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8" />
+    <title>goomap basic example</title>
+
+    <script type="text/javascript" src="http://ajax.aspnetcdn.com/ajax/jquery/jquery-1.7.min.js"></script>
+    <script type="text/javascript" src="http://maps.google.com/maps/api/js?sensor=false"></script>
+    <link rel="stylesheet" type="text/css" href="examples.css" />
+    
+</head>
+<body>
+    
+    <h1>Basic Example</h1>
+    
+    <div id="myMap"></div>
+
+    <script type="text/javascript" src="../jquery.goomap.js"></script>
+    
+    <script type="text/javascript">
+        
+        var map = $("#myMap").goomap({urlData : "geodata.json"});
+        
+    </script>
+    
+</body>
+</html>
