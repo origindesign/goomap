@@ -37,6 +37,7 @@
             autoDisplay : true, // if false, map display need to be called manually via the function displayMap()
             icons : null, // Default is using google defaul icon
             onDataLoaded : function () {}, // Callback function when geo data are loaded
+            onMapDisplayed : function () {}, // Callback function when entire map is displayed
             mapOptions : {
                 center: new $googlemaps.LatLng(41.85, -87.65),
                 zoom: 4,
@@ -52,7 +53,7 @@
             styles : [], // As per google map style
             infoWindow : [ 'title', 'location' ], // default fields to be displayed
             maxWidthWindow : 300, // default width for infow window
-            keyForImg : ["image", "images", "photos", "img", "media"] // default image key for displaying image
+            keyForImg : ["image", "images", "photos", "img", "media", "image_path"] // default image key for displaying image
         }, options);
 
 
@@ -68,6 +69,8 @@
         var _allData;
         var _allMarkers = [];
         var _allInfoWindow = [];
+        var _allCategories = [];
+        var _tempCategories = [];
         var _imageKeyArr = settings.keyForImg;
 
 
@@ -97,7 +100,7 @@
 
 
         // Loop Data to get Geo info
-        var _loopMarkers = function() {
+        var _loopNodes = function() {
             for (var key in _allData) {
                 var geoData = _allData[key];
                 // Loop through node item geoData (1 round)
@@ -105,9 +108,13 @@
                     if(geoData.hasOwnProperty(prop)){
                         // Add Marker to the Map
                         _addMarker(geoData[prop]);
+                        // Store Category
+                        _storeCategories(geoData[prop]);
                     }
                 }
             }
+            // Call Back when entire map is displayed (all nodes have been explored)
+            settings.onMapDisplayed.call( _obj );
         };
 
 
@@ -116,8 +123,10 @@
         var _addMarker = function($item) {
             // Get position 
             var position = new $googlemaps.LatLng($item.latitude,$item.longitude);
-            // Get icon if passed on settings 
-            var icon = (settings.icons !== null) ? { url: settings.icons.path+$item.marker+".png", size: settings.icons.size, origin: settings.icons.origin, anchor: settings.icons.anchor } : null;
+            // Get first marker from item in case there are multiples
+            var itemMarkers = $item.marker.replace(/\s/g, "").split(";");
+            // Get icon if passed on settings
+            var icon = (settings.icons !== null) ? { url: settings.icons.path+itemMarkers[0]+".png", size: settings.icons.size, origin: settings.icons.origin, anchor: settings.icons.anchor } : null;
             // Create marker
             var marker = new $googlemaps.Marker({
                 position: position,
@@ -145,7 +154,30 @@
                 infowindow.open(_map,marker);
             });
         };
-
+        
+        
+        // Store Categories
+        var _storeCategories = function($item) {
+            // Split array of category in case there are multiple
+            var arrId = $item.tid.toString().split(";");
+            var arrName = $item.category.split(";");
+            var arrLength = arrId.length; // store only arrId length as name is supposed to have the same length
+            // Loop through all categories of the node
+            for (var i=0; i<arrLength; i++){
+                // get Int of the id
+                var tempId = parseInt (arrId[i]);
+                // If category doesn't exist yet  
+                if ( _tempCategories.indexOf(tempId) === -1 ){
+                    var category = {
+                        id: tempId,
+                        name: arrName[i]
+                    };
+                    // Store Categories in array (temp is used for better performance when checking if already exists)
+                    _tempCategories.push(tempId);
+                    _allCategories.push(category);
+                }
+            }
+        };
 
 
         // Close all info window
@@ -176,7 +208,9 @@
         };
 
 
-
+        
+        
+        
 
         // ---------------------------------------------------------------------
         // PUBLIC METHODS
@@ -201,11 +235,14 @@
             // Apply style if some are passed on setings
             _map.setOptions({styles: settings.styles});
             // Loop all markers to add them
-            _loopMarkers();
+            _loopNodes();
         };
 
-
-
+        // Return all the categories of the geo data
+        this.getAllCategories = function(){
+            return _allCategories;
+        };
+        
 
         // ---------------------------------------------------------------------
         // RETURN 

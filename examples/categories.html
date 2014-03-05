@@ -14,19 +14,37 @@
     <h1>Basic Example</h1>
     
     <div id="myMap"></div>
+    
+    <div id="categories"></div>
 
     <script type="text/javascript" src="../jquery.goomap.js"></script>
     
     <script type="text/javascript">
         
         var mapContainer = $("#myMap");
+        var categories = new Array();  
         var map = mapContainer.goomap({
             urlData : "geodata.json",
-            onDataLoaded: function(){
-                console.log ("Data Loaded");
+            onMapDisplayed: function(){
+                categories = this.getAllCategories();
+                loopCategories();
             }
         });
-   
+        
+        function loopCategories(){
+            // Store Length of category array
+            var categorieLength = categories.length;
+            // If category array is not empty
+            if( categorieLength > 0){
+                // Loop trhough all categories
+                for (var i = 0; i < categorieLength; i++){
+                    console.log( categories[i] );
+                }
+            }
+        }
+        
+        
+
         
     </script>
     
