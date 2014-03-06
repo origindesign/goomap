@@ -23,7 +23,7 @@
         
 
         // ---------------------------------------------------------------------
-        // DEFAULT SETTINGS
+        // MAIN MAP OBJECT
         // ---------------------------------------------------------------------
         var $googlemaps = google.maps;
 
@@ -33,7 +33,8 @@
         // DEFAULT SETTINGS
         // ---------------------------------------------------------------------
         var settings = $.extend({
-            urlData : '/path-to-json-data.json', // json path to where geo data are stored
+            urlJson : null, // json path to where geo data are stored in case of external URL use
+            dataJson : '{"nodes" : [{"node" : {"latitude" : "41.85","longitude" : "-87.65"}}]}', // default value for 1 marker display
             autoDisplay : true, // if false, map display need to be called manually via the function displayMap()
             icons : null, // Default is using google defaul icon
             onDataLoaded : function () {}, // Callback function when geo data are loaded
@@ -51,9 +52,10 @@
                 mapTypeId: $googlemaps.MapTypeId.ROADMAP
             }, // As per google map options
             styles : [], // As per google map style
-            infoWindow : [ 'title', 'location' ], // default fields to be displayed
+            infoWindow : null, // default fields to be displayed
             maxWidthWindow : 300, // default width for infow window
-            keyForImg : ["image", "images", "photos", "img", "media", "image_path"] // default image key for displaying image
+            keyForImg : ["image", "images", "photos", "img", "media", "image_path"], // default image key for displaying image
+            splitter: ";" // Define a delimiter for multiple categories
         }, options);
 
 
@@ -76,7 +78,6 @@
 
 
 
-
         // ---------------------------------------------------------------------
         // PRIVATE METHODS
         // ---------------------------------------------------------------------
@@ -85,16 +86,27 @@
 
         // get Geo Data from given URL (json only)
         var _getGeoData = function() {
-            $.getJSON(settings.urlData, function(data) {
-                // Store All Data
-                _allData = data.nodes;
-                // Call Back when data are loaded
-                settings.onDataLoaded.call( _obj );
-                // Display Map if autoDIsplay is true
-                if (settings.autoDisplay === true){
-                    _obj.displayMap();
-                }
-            });
+            if( settings.urlJson !== null ){
+                $.getJSON(settings.urlJson, function(data) {
+                    _browseJson (data);
+                });
+            }else{
+                var data = $.parseJSON(settings.dataJson);
+                 _browseJson (data);
+            }
+        };
+        
+        
+        // Browse Json file (either it's a string or a URL)
+        var _browseJson = function($data){
+            // Store All Data
+            _allData = $data.nodes;
+            // Call Back when data are loaded
+            settings.onDataLoaded.call( _obj );
+            // Display Map if autoDIsplay is true
+            if (settings.autoDisplay === true){
+                _obj.displayMap();
+            }
         };
 
 
@@ -123,10 +135,14 @@
         var _addMarker = function($item) {
             // Get position 
             var position = new $googlemaps.LatLng($item.latitude,$item.longitude);
-            // Get first marker from item in case there are multiples
-            var itemMarkers = $item.marker.replace(/\s/g, "").split(";");
             // Get icon if passed on settings
-            var icon = (settings.icons !== null) ? { url: settings.icons.path+itemMarkers[0]+".png", size: settings.icons.size, origin: settings.icons.origin, anchor: settings.icons.anchor } : null;
+            var icon = null;
+            if( settings.icons !== null ){
+                // Get first marker from item in case there are multiples
+                var itemMarkers = $item.marker.replace(/\s/g, "").split(settings.splitter);
+                // setup Icon
+                icon = { url: settings.icons.path+itemMarkers[0]+".png", size: settings.icons.size, origin: settings.icons.origin, anchor: settings.icons.anchor };
+            }
             // Create marker
             var marker = new $googlemaps.Marker({
                 position: position,
@@ -142,39 +158,43 @@
             _allMarkers.push(marker);
 
             // Define Info Window
-            var infowindow = new $googlemaps.InfoWindow({
-                content: _templateInfoWindow(marker),
-                maxWidth: settings.maxWidthWindow
-            });
+            if ( settings.infoWindow !== null ){
+                var infowindow = new $googlemaps.InfoWindow({
+                    content: _templateInfoWindow(marker),
+                    maxWidth: settings.maxWidthWindow
+                });
 
-            // Add listener for markers to open info window
-            $googlemaps.event.addListener(marker, 'click', function() {
-                _closeAllInfoWindows();
-                _allInfoWindow.push(infowindow); 
-                infowindow.open(_map,marker);
-            });
+                // Add listener for markers to open info window
+                $googlemaps.event.addListener(marker, 'click', function() {
+                    _closeAllInfoWindows();
+                    _allInfoWindow.push(infowindow); 
+                    infowindow.open(_map,marker);
+                });
+            }
         };
         
         
         // Store Categories
         var _storeCategories = function($item) {
             // Split array of category in case there are multiple
-            var arrId = $item.tid.toString().split(";");
-            var arrName = $item.category.split(";");
-            var arrLength = arrId.length; // store only arrId length as name is supposed to have the same length
-            // Loop through all categories of the node
-            for (var i=0; i<arrLength; i++){
-                // get Int of the id
-                var tempId = parseInt (arrId[i]);
-                // If category doesn't exist yet  
-                if ( _tempCategories.indexOf(tempId) === -1 ){
-                    var category = {
-                        id: tempId,
-                        name: arrName[i]
-                    };
-                    // Store Categories in array (temp is used for better performance when checking if already exists)
-                    _tempCategories.push(tempId);
-                    _allCategories.push(category);
+            if ($item.tid !== undefined){
+                var arrId = $item.tid.toString().split(settings.splitter);
+                var arrName = $item.category.split(settings.splitter);
+                var arrLength = arrId.length; // store only arrId length as name is supposed to have the same length
+                // Loop through all categories of the node
+                for (var i=0; i<arrLength; i++){
+                    // get Int of the id
+                    var tempId = parseInt (arrId[i]);
+                    // If category doesn't exist yet  
+                    if ( _tempCategories.indexOf(tempId) === -1 ){
+                        var category = {
+                            category_id: tempId,
+                            category_name: arrName[i]
+                        };
+                        // Store Categories in array (temp is used for better performance when checking if already exists)
+                        _tempCategories.push(tempId);
+                        _allCategories.push(category);
+                    }
                 }
             }
         };
@@ -206,6 +226,23 @@
 
             return tpl;
         };
+        
+        
+        // Utility function to get intersection between 2 arrays
+        function _intersect_safe(a, b){
+            var ai=0, bi=0;
+            var result = new Array();
+            while( ai < a.length && bi < b.length ){
+                if      (a[ai] < b[bi] ){ ai++; }
+                else if (a[ai] > b[bi] ){ bi++; }
+                else /* they're equal */ {
+                    result.push(a[ai]);
+                    ai++;
+                    bi++;
+                }
+            }
+            return result;
+        }
 
 
         
@@ -242,6 +279,41 @@
         this.getAllCategories = function(){
             return _allCategories;
         };
+        
+        
+        // Show Markers based on passed value
+        this.displayMarkers = function(filters) { 
+            // Hide All info Window
+            _closeAllInfoWindows();
+            // Sort filter array
+            var filterSorted = filters.sort();
+            var nbMarkers = _allMarkers.length;
+            // Loop through all markers
+            for (var i=0; i<nbMarkers; i++){
+                // Get category id into a table and sort it
+                var arrTid = _allMarkers[i].tid.split(settings.splitter);
+                var arrSorted = arrTid.sort();
+                // Get common value of the 2 arrays 
+                var diffLength = _intersect_safe(filterSorted.sort(),arrSorted).length;
+                if ( diffLength > 0){
+                    // If there is at least 1 common value, show the marker
+                    _allMarkers[i].setVisible(true);
+                }else{
+                    // If there is no common value hide the marker
+                    _allMarkers[i].setVisible(false);
+                }
+            }
+        };
+        
+        
+        // Hide all markers
+        this.hideAllmarkers = function(){
+            var nbMarkers = _allMarkers.length;
+            for (var i=0; i<nbMarkers; i++){
+                _allMarkers[i].setVisible(false);
+            }
+        };
+        
         
 
         // ---------------------------------------------------------------------

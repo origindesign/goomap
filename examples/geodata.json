@@ -46,9 +46,9 @@
         "latitude" : "53.913768300000",
         "longitude" : "-122.744576400000",
         "location" : "582 George Street Prince George BC V2L 1R7 CA",
-        "category" : "Dining and Nightlife;Groups",
-        "tid" : "6;9",
-        "marker" : "marker_6;marker_9"
+        "category" : "Dining and Nightlife;Groups;Bed and Breakfasts;Other",
+        "tid" : "6;9;1;11",
+        "marker" : "marker_6;marker_9;marker_1;marker_11"
       }
     },
     {

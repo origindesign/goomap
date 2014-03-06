@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8" />
-    <title>goomap basic example</title>
+    <title>goomap Categories example</title>
 
     <script type="text/javascript" src="http://ajax.aspnetcdn.com/ajax/jquery/jquery-1.7.min.js"></script>
     <script type="text/javascript" src="http://maps.google.com/maps/api/js?sensor=false"></script>
@@ -11,39 +11,77 @@
 </head>
 <body>
     
-    <h1>Basic Example</h1>
+    <h1>Categories Example</h1>
     
     <div id="myMap"></div>
     
-    <div id="categories"></div>
+    <div id="categories">
+        <form id="filters">
+            
+        </form>
+    </div>
 
     <script type="text/javascript" src="../jquery.goomap.js"></script>
     
     <script type="text/javascript">
         
-        var mapContainer = $("#myMap");
-        var categories = new Array();  
-        var map = mapContainer.goomap({
-            urlData : "geodata.json",
-            onMapDisplayed: function(){
-                categories = this.getAllCategories();
-                loopCategories();
-            }
+        $(document).ready(function(){
+        
+            var mapContainer = $("#myMap");
+            var categories = new Array();  
+            var map = mapContainer.goomap({
+                urlJson : "geodata.json",
+                infoWindow : [ 'title', 'location', 'category' ],
+                onMapDisplayed: function(){
+                    categories = this.getAllCategories();
+                    loopCategories(categories, map);
+                }
+            });
+            
+            // When a checkbox changes, show / hide markers
+            $('#filters').on( "change", "input.filter" , function(event) {
+                // Store checked filters
+                var filters = getCheckedFilters();
+                // Display // Hide markers based on filters
+                map.displayMarkers(filters);
+            });
+            
         });
         
-        function loopCategories(){
+        
+        function loopCategories($categories, $map){
             // Store Length of category array
-            var categorieLength = categories.length;
+            var categorieLength = $categories.length;
             // If category array is not empty
             if( categorieLength > 0){
                 // Loop trhough all categories
                 for (var i = 0; i < categorieLength; i++){
-                    console.log( categories[i] );
+                    addInputToForm($categories[i].category_id, $categories[i].category_name);
                 }
             }
-        }
+            // Get default value of filters and display them
+            var filters = getCheckedFilters();
+            $map.displayMarkers(filters);
+        };
         
         
+        function addInputToForm($category_id, $category_name){
+            var result = '<div><input class="filter" type="checkbox" value="'+$category_id+'" checked="checked" /><label>'+$category_name+'</label></div>';
+            $( result ).appendTo( "#filters" );
+        };
+        
+        
+        function getCheckedFilters (){
+            var checkedFilter = [];
+            // Loop through all filter checkboxes o see which one are checked
+            $('#filters input.filter').each(function( index ) {
+                var $this = $(this);
+                if ($this.is(':checked')) {
+                    checkedFilter.push( $this.val() );
+                }
+            });
+            return (checkedFilter);
+        };
 
         
     </script>

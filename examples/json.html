@@ -2,7 +2,7 @@
 <html>
 <head>
     <meta charset="UTF-8" />
-    <title>goomap basic example</title>
+    <title>goomap JSon example</title>
 
     <script type="text/javascript" src="http://ajax.aspnetcdn.com/ajax/jquery/jquery-1.7.min.js"></script>
     <script type="text/javascript" src="http://maps.google.com/maps/api/js?sensor=false"></script>
@@ -11,7 +11,7 @@
 </head>
 <body>
     
-    <h1>Basic Example</h1>
+    <h1>JSon Example</h1>
     
     <div id="myMap"></div>
 
@@ -19,17 +19,16 @@
     
     <script type="text/javascript">
         
-        var node = '{"nodes" : [{"node" : {"latitude" : "41.946101000000","longitude" : "-73.862626000000"}}]}';
-        
         var mapContainer = $("#myMap");
         var map = mapContainer.goomap({
+            urlJson : "geodata.json",
+            infoWindow : [ 'title', 'location' ],
             onDataLoaded: function(){
                 console.log ("Data Loaded");
             }
         });
-        
-        
-        
+   
+ 
     </script>
     
 </body>
